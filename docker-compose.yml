@@ -1,0 +1,53 @@
+version: "3.8"
+
+networks:
+  default:
+    name: ${APP_NAME}-network
+    driver: bridge
+
+services:
+  php-apache:
+    build: ./docker/php-apache
+    image: ${APP_NAME}-php-apache
+    container_name: ${APP_NAME}-php-apache
+    restart: always
+    ports:
+      - 80:80
+    volumes:
+      - ./www:/var/www
+      - ./docker/php-apache/000-default.conf:/etc/apache2/sites-available/000-default.conf
+      - ./docker/php-apache/logs:/var/log/apache2
+    networks:
+      - default
+
+  mariadb:
+    image: mariadb
+    container_name: ${APP_NAME}-mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+      MYSQL_DATABASE: ${DB_NAME}
+    ports:
+      - 3306:3306
+    volumes:
+      - ./docker/mariadb/data:/var/lib/mysql
+      - ./docker/mariadb/dump:/docker-entrypoint-initdb.d
+    networks:
+      - default
+
+  dbadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: ${APP_NAME}-dbadmin
+    restart: always
+    environment:
+      PMA_HOST: mariadb
+      PMA_USER: root
+      PMA_PASSWORD: ${DB_ROOT_PASS}
+    ports:
+      - 8080:80
+    depends_on:
+      - mariadb
+    networks:
+      - default
